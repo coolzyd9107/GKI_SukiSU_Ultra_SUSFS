@@ -265,7 +265,7 @@ jobs:
   # 当 release_type 不是 Actions 时，创建 GitHub Release
   # 仅限原仓库运行，fork 仓库跳过此步骤
   release:
-    if: ${{ always() && !cancelled() && inputs.release_type != 'Actions' && github.repository == 'zzh20188/GKI_KernelSU_SUSFS' }}
+    if: ${{ always() && !cancelled() && inputs.release_type != 'Actions' && github.repository == 'coolzyd9107/GKI_SukiSU_Ultra_SUSFS' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -630,3 +630,39 @@ jobs:
           echo "- **标签**: $NEW_TAG" >> $GITHUB_STEP_SUMMARY
           echo "- **类型**: ${{ inputs.release_type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **链接**: https://github.com/$REPO_OWNER/$REPO_NAME/releases/tag/$NEW_TAG" >> $GITHUB_STEP_SUMMARY
+          
+# ==================== 发布通知 ====================
+
+      - name: 发送 Telegram 群组通知(SukiSU群组)
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          message_thread_id: ${{secrets.MESSAGE_THREAD_ID}}
+        run: |
+          set -euo pipefail
+
+          TEXT=$(cat <<EOF
+          <b>New Community GKI Release:</b>
+          
+          Branch: <code>built-in</code>
+          Tag: <code>${NEW_TAG}</code>
+          
+          Features: 
+          <pre>SukiSU = ${{ inputs.kernelsu_variant == 'SukiSU' && 'true' || 'false' }}
+          SuSFS = ${{ inputs.cancel_susfs && 'false' || 'true' }}
+          KPM = true
+          BBG = ${{ inputs.use_bbg && 'true' || 'false' }}
+          LZ4KD = ${{ inputs.use_zram && 'true' || 'false' }}
+          Re-Kernel = ${{ inputs.use_rekernel && 'true' || 'false' }}</pre>
+          
+          Download: <a href="https://github.com/coolzyd9107/GKI_SukiSU_Ultra_SUSFS/releases/latest">Click Here</a>
+          Note: 我主要维护ReSukiSU的GKI，这边是随缘维护，另外，这个仓库的构建是用的我fork的SukiSU-Ultra，仅做了编译修复，未做任何其他更改
+
+          EOF
+          )
+
+          curl -s "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            -d message_thread_id="${message_thread_id}" \
+            -d parse_mode="HTML" \
+            --data-urlencode text="${TEXT}"
